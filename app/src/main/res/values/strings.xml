@@ -2,6 +2,8 @@
 <resources>
 
     <string name="app_name">OD_Android</string>
-    <string name="title_activity_maps">Map</string>
-
+    <string name="title_activity_maps">beaconHub</string>
+    <string name="action_settings">Settings</string>
+    <integer name="google_play_services_version">5089000</integer>
+    <string name="google_maps_key">AIzaSyDbnNZDWy0Iw_pnLgsGRN7Py0JkVHMfZKk</string>
 </resources>
