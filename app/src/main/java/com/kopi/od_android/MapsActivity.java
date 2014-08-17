@@ -1,5 +1,6 @@
 package com.kopi.od_android;
 
+import java.util.Collection;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.os.RemoteException;
@@ -13,8 +14,14 @@ import android.util.Log;
 import org.altbeacon.beacon.BeaconConsumer;
 import org.altbeacon.beacon.BeaconManager;
 import org.altbeacon.beacon.BeaconParser;
-import org.altbeacon.beacon.MonitorNotifier;
+
+import org.altbeacon.beacon.Beacon;
+
+import org.altbeacon.beacon.RangeNotifier;
 import org.altbeacon.beacon.Region;
+import org.altbeacon.beacon.Identifier;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 
 public class MapsActivity extends FragmentActivity implements BeaconConsumer {
 
@@ -27,13 +34,52 @@ public class MapsActivity extends FragmentActivity implements BeaconConsumer {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         setUpMapIfNeeded();
+        verifyBluetooth();
 
         beaconManager = org.altbeacon.beacon.BeaconManager.getInstanceForApplication(this);
+        beaconManager.getBeaconParsers().add(new BeaconParser().
+                setBeaconLayout("m:0-3=4c000215,i:4-19,i:20-21,i:22-23,p:24-24"));
         beaconManager.bind(this);
-
+        beaconManager.debug = true;
 
     }
+    private void verifyBluetooth() {
 
+        try {
+            if (!BeaconManager.getInstanceForApplication(this).checkAvailability()) {
+                final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("Bluetooth not enabled");
+                builder.setMessage("Please enable bluetooth in settings and restart this application.");
+                builder.setPositiveButton(android.R.string.ok, null);
+                builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        finish();
+                        System.exit(0);
+                    }
+                });
+                builder.show();
+            }
+        }
+        catch (RuntimeException e) {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Bluetooth LE not available");
+            builder.setMessage("Sorry, this device does not support Bluetooth LE.");
+            builder.setPositiveButton(android.R.string.ok, null);
+            builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    finish();
+                    System.exit(0);
+                }
+
+            });
+            builder.show();
+
+        }
+
+    }
     @Override
     protected void onResume() {
         super.onResume();
@@ -72,29 +118,28 @@ public class MapsActivity extends FragmentActivity implements BeaconConsumer {
         super.onDestroy();
         beaconManager.unbind(this);
     }
+
     @Override
     public void onBeaconServiceConnect() {
-        beaconManager.setMonitorNotifier(new MonitorNotifier() {
+        beaconManager.setRangeNotifier(new RangeNotifier() {
             @Override
-            public void didEnterRegion(Region region) {
-                Log.i(TAG, "I just saw an beacon for the firt time!");
+            public void didRangeBeaconsInRegion(Collection<Beacon> beacons, Region region) {
+                if (beacons.size() > 0) {
+ //                   EditText editText = (EditText)RangingActivity.this
+ //                           .findViewById(R.id.rangingText);
+                    Beacon firstBeacon = beacons.iterator().next();
+ //                   logToDisplay("The first beacon "+firstBeacon.toString()+" is about "+firstBeacon.getDistance()+" meters away.");
+                }
             }
 
-            @Override
-            public void didExitRegion(Region region) {
-                Log.i(TAG, "I no longer see an beacon");
-            }
-
-            @Override
-            public void didDetermineStateForRegion(int state, Region region) {
-                Log.i(TAG, "I have just switched from seeing/not seeing beacons: "+state);
-            }
         });
 
         try {
-            beaconManager.startMonitoringBeaconsInRegion(new Region("myMonitoringUniqueId", null, null, null));
+            beaconManager.startRangingBeaconsInRegion(new Region("myRangingUniqueId",  Identifier.parse("E2C56DB5-DFFB-48D2-B060-D0F5A71096E8"), Identifier.parse("0"), Identifier.parse("0")));
         } catch (RemoteException e) {   }
     }
+
+
     /**
      * This is where we can add markers or lines, add listeners or move the camera. In this case, we
      * just add a marker near Africa.
